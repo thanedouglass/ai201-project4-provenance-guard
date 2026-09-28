@@ -92,9 +92,10 @@ def create_app(db_path: str = None) -> Flask:
         if not data:
             return jsonify({"error": "Invalid JSON payload"}), 400
 
-        content = data.get("content", "").strip()
+        # Accept either 'content' or 'text' for maximum API compatibility
+        content = (data.get("content") or data.get("text") or "").strip()
         if not content:
-            return jsonify({"error": "Field 'content' is required and cannot be empty"}), 400
+            return jsonify({"error": "Field 'content' (or 'text') is required and cannot be empty"}), 400
 
         if len(content) < 10:
             return jsonify({"error": "Content must be at least 10 characters long"}), 400
@@ -124,12 +125,15 @@ def create_app(db_path: str = None) -> Flask:
 
         response_payload = {
             "submission_id": submission_id,
+            "content_id": submission_id,
             "attribution": analysis["attribution"],
+            "confidence": analysis["confidence_score"],
             "confidence_score": analysis["confidence_score"],
             "composite_ai_score": analysis["composite_ai_score"],
             "label_variant": analysis["label_variant"],
             "transparency_badge": analysis["transparency_badge"],
             "transparency_label": analysis["transparency_label"],
+            "label": analysis["transparency_label"],
             "is_discordant": analysis["is_discordant"],
             "signal_discordance_std": analysis["signal_discordance_std"],
             "is_short_content": analysis["is_short_content"],
@@ -165,17 +169,15 @@ def create_app(db_path: str = None) -> Flask:
         Captures creator reasoning, logs the appeal, and transitions status to 'under_review'.
         """
         data = request.get_json(silent=True) or {}
-        sub_id = submission_id or data.get("submission_id")
+        sub_id = submission_id or data.get("submission_id") or data.get("content_id")
         if not sub_id:
-            return jsonify({"error": "Field 'submission_id' is required"}), 400
+            return jsonify({"error": "Field 'submission_id' (or 'content_id') is required"}), 400
 
-        creator_id = data.get("creator_id", "").strip()
-        if not creator_id:
-            return jsonify({"error": "Field 'creator_id' (or email/handle) is required"}), 400
+        creator_id = (data.get("creator_id") or "anonymous_creator").strip()
 
-        reasoning = data.get("reasoning", "").strip()
+        reasoning = (data.get("reasoning") or data.get("creator_reasoning") or "").strip()
         if not reasoning or len(reasoning) < 20:
-            return jsonify({"error": "Field 'reasoning' must be at least 20 characters explaining your creation process"}), 400
+            return jsonify({"error": "Field 'reasoning' (or 'creator_reasoning') must be at least 20 characters explaining your creation process"}), 400
 
         assistance_type = data.get("assistance_type", "pure_human_no_ai")
         supporting_evidence = data.get("supporting_evidence", "")
@@ -190,6 +192,11 @@ def create_app(db_path: str = None) -> Flask:
             )
             return jsonify({
                 "message": "Appeal successfully filed. Content status has been updated to 'under review'.",
+                "status": "under_review",
+                "submission_id": sub_id,
+                "content_id": sub_id,
+                "appeal_reasoning": reasoning,
+                "creator_reasoning": reasoning,
                 "appeal": result
             }), 201
         except ValueError as ve:

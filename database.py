@@ -308,11 +308,20 @@ class DatabaseManager:
             results = []
             for r in rows:
                 item = dict(r)
+                item["content_id"] = item["id"]
+                item["confidence"] = item["confidence_score"]
                 item["raw_scores"] = json.loads(item["raw_scores"])
                 item["metadata"] = json.loads(item["metadata"]) if item["metadata"] else {}
-                # Include appeal count
-                appeal_count = conn.execute("SELECT COUNT(*) as c FROM appeals WHERE submission_id = ?", (item["id"],)).fetchone()["c"]
-                item["appeal_count"] = appeal_count
+                # Include appeal details if present
+                latest_appeal = conn.execute("SELECT * FROM appeals WHERE submission_id = ? ORDER BY created_at DESC LIMIT 1", (item["id"],)).fetchone()
+                if latest_appeal:
+                    item["appeal_reasoning"] = latest_appeal["reasoning"]
+                    item["creator_reasoning"] = latest_appeal["reasoning"]
+                    item["appeal_status"] = latest_appeal["status"]
+                    item["appeal_id"] = latest_appeal["id"]
+                    item["appeal_count"] = 1
+                else:
+                    item["appeal_count"] = 0
                 results.append(item)
             return results
 
