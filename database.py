@@ -278,6 +278,7 @@ class DatabaseManager:
             if not row:
                 return None
             res = dict(row)
+            res["certificate_id"] = res["id"]
             sub = conn.execute("SELECT content_excerpt, attribution, confidence_score FROM submissions WHERE id = ?", (res["submission_id"],)).fetchone()
             if sub:
                 res["submission_details"] = dict(sub)

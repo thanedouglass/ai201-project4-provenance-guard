@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Provenance Guard — Attribution & Transparency Platform</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="brand">
+                <span class="brand-shield">🛡️</span>
+                <span class="brand-title">Provenance Guard</span>
+                <span class="brand-badge">v1.0.0</span>
+            </div>
+            <nav class="nav-links">
+                <a href="#tester" class="nav-item">Submit & Test</a>
+                <a href="#analytics" class="nav-item">Analytics</a>
+                <a href="#audit-log" class="nav-item">Audit Trail</a>
+                <a href="#appeals" class="nav-item">Appeals Queue</a>
+                <a href="/log" target="_blank" class="nav-item api-link">GET /log JSON</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Hero & Overview -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1>Attribution & Transparency for Creative Platforms</h1>
+                <p class="hero-subtitle">
+                    A multi-signal detection and uncertainty calibration engine. Empowering creative communities
+                    with honest confidence scoring, reader transparency labels, and creator appeal guarantees.
+                </p>
+            </div>
+        </section>
+
+        <!-- Metric Cards -->
+        <section id="analytics" class="metrics-grid">
+            <div class="card metric-card">
+                <div class="metric-title">Total Submissions</div>
+                <div class="metric-value" id="stat-total">{{ analytics.total_submissions }}</div>
+                <div class="metric-footnote">Across all creative content types</div>
+            </div>
+            <div class="card metric-card card-human">
+                <div class="metric-title">Human Authored</div>
+                <div class="metric-value">{{ analytics.attributions.human }} <span class="metric-pct">({{ analytics.attributions.human_percent }}%)</span></div>
+                <div class="metric-footnote">High-confidence human writing</div>
+            </div>
+            <div class="card metric-card card-ai">
+                <div class="metric-title">AI-Generated</div>
+                <div class="metric-value">{{ analytics.attributions.ai }} <span class="metric-pct">({{ analytics.attributions.ai_percent }}%)</span></div>
+                <div class="metric-footnote">Synthetic signatures detected</div>
+            </div>
+            <div class="card metric-card card-uncertain">
+                <div class="metric-title">Uncertain / Borderline</div>
+                <div class="metric-value">{{ analytics.attributions.uncertain }} <span class="metric-pct">({{ analytics.attributions.uncertain_percent }}%)</span></div>
+                <div class="metric-footnote">Inconclusive or conflicting signals</div>
+            </div>
+            <div class="card metric-card">
+                <div class="metric-title">Appeal Rate</div>
+                <div class="metric-value">{{ analytics.appeals.appeal_rate_percent }}%</div>
+                <div class="metric-footnote">{{ analytics.appeals.total }} total appeals filed</div>
+            </div>
+            <div class="card metric-card">
+                <div class="metric-title">Avg Confidence</div>
+                <div class="metric-value">{{ (analytics.telemetry.avg_confidence * 100)|round(1) }}%</div>
+                <div class="metric-footnote">{{ analytics.telemetry.certificates_issued }} Provenance Certs issued</div>
+            </div>
+        </section>
+
+        <!-- Live Content Submission & Attribution Tester -->
+        <section id="tester" class="submission-section">
+            <div class="card main-form-card">
+                <div class="card-header">
+                    <h2>Submit Creative Work for Attribution Analysis</h2>
+                    <span class="badge-rate-limit">Rate Limit: 10/min</span>
+                </div>
+                <form id="submission-form">
+                    <div class="form-row">
+                        <div class="form-group flex-1">
+                            <label for="content-type">Content Type / Platform</label>
+                            <select id="content-type" class="form-control">
+                                <option value="poem">Poem / Lyric</option>
+                                <option value="short_story">Short Story / Fiction</option>
+                                <option value="blog_post" selected>Blog Post / Essay</option>
+                                <option value="reddit">Reddit Submission</option>
+                                <option value="x">X / Twitter Thread</option>
+                                <option value="image_description">Art Alt-Text / Description</option>
+                            </select>
+                        </div>
+                        <div class="form-group flex-1">
+                            <label for="creator-id">Creator ID / Handle</label>
+                            <input type="text" id="creator-id" class="form-control" value="creator_at_studio" placeholder="e.g. maya_angelou_fan">
+                        </div>
+                        <div class="form-group flex-2">
+                            <label>Quick Presets</label>
+                            <div class="preset-buttons">
+                                <button type="button" class="btn btn-sm btn-outline" id="preset-human">Preset: Human Prose</button>
+                                <button type="button" class="btn btn-sm btn-outline" id="preset-ai">Preset: Synthetic AI</button>
+                                <button type="button" class="btn btn-sm btn-outline" id="preset-uncertain">Preset: Borderline Hybrid</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="submission-text">Content Text (Min 10 characters)</label>
+                        <textarea id="submission-text" class="form-control text-area" rows="6" placeholder="Paste poem, essay, story, or article here..."></textarea>
+                    </div>
+
+                    <div class="form-group" id="metadata-group">
+                        <label for="submission-metadata">Optional Platform Metadata (JSON)</label>
+                        <textarea id="submission-metadata" class="form-control mono-box" rows="2" placeholder='{"author_karma": 850, "account_age_days": 120, "has_edits": true}'></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="btn-submit">
+                            <span id="submit-spinner" class="spinner hidden"></span>
+                            Analyze Attribution (POST /submit)
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Live Results Display -->
+                <div id="result-container" class="result-box hidden">
+                    <hr class="divider">
+                    <div class="result-header">
+                        <h3>Attribution Analysis Result</h3>
+                        <span id="result-status-badge" class="badge"></span>
+                    </div>
+
+                    <!-- Transparency Label Surface -->
+                    <div class="transparency-banner" id="transparency-banner">
+                        <div class="banner-top">
+                            <span class="banner-icon" id="banner-icon">🏷️</span>
+                            <span class="banner-title" id="banner-title">Transparency Label</span>
+                            <span class="banner-confidence" id="banner-confidence"></span>
+                        </div>
+                        <div class="banner-text" id="banner-text"></div>
+                    </div>
+
+                    <!-- Multi-Signal Breakdown -->
+                    <div class="signals-breakdown">
+                        <h4>Multi-Signal Ensemble Breakdown</h4>
+                        <div class="signals-grid" id="signals-grid"></div>
+                    </div>
+
+                    <!-- Actions Bar (Appeal or Request Certificate) -->
+                    <div class="result-actions" id="result-actions">
+                        <button type="button" class="btn btn-warning" id="btn-open-appeal">Contest Attribution (File Appeal)</button>
+                        <button type="button" class="btn btn-success hidden" id="btn-issue-cert">Claim Provenance Certificate 🛡️</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Audit Trail Table -->
+        <section id="audit-log" class="audit-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Immutable Audit Log (GET /log)</h2>
+                    <span class="text-muted">Showing recent attribution records</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table" id="audit-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp (UTC)</th>
+                                <th>Submission ID</th>
+                                <th>Content Excerpt</th>
+                                <th>Attribution</th>
+                                <th>Confidence</th>
+                                <th>Label Variant</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in recent_logs %}
+                            <tr>
+                                <td class="mono-text">{{ log.created_at[:19] }}</td>
+                                <td class="mono-text"><a href="/submit/{{ log.id }}" target="_blank">{{ log.id[:8] }}...</a></td>
+                                <td>{{ log.content_excerpt }}</td>
+                                <td>
+                                    <span class="tag tag-{{ log.attribution }}">{{ log.attribution|upper }}</span>
+                                </td>
+                                <td><strong>{{ (log.confidence_score * 100)|round(1) }}%</strong></td>
+                                <td class="mono-text text-sm">{{ log.label_variant }}</td>
+                                <td>
+                                    <span class="status-pill status-{{ log.status }}">{{ log.status }}</span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr id="no-records-row">
+                                <td colspan="7" class="text-center text-muted">No submissions recorded yet. Submit a test sample above!</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Appeals Queue Section -->
+        <section id="appeals" class="appeals-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Creator Appeals Workflow Queue</h2>
+                    <span class="text-muted">Resolution & Dispute Audit</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table" id="appeals-table">
+                        <thead>
+                            <tr>
+                                <th>Filing Date</th>
+                                <th>Appeal ID</th>
+                                <th>Creator</th>
+                                <th>Contested Work</th>
+                                <th>Creator Reasoning</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for appeal in recent_appeals %}
+                            <tr>
+                                <td class="mono-text">{{ appeal.created_at[:19] }}</td>
+                                <td class="mono-text">{{ appeal.id[:8] }}...</td>
+                                <td>{{ appeal.creator_id }}</td>
+                                <td>{{ appeal.content_excerpt }}</td>
+                                <td><em>"{{ appeal.reasoning }}"</em></td>
+                                <td><span class="status-pill status-{{ appeal.status }}">{{ appeal.status }}</span></td>
+                                <td>
+                                    {% if appeal.status == 'under_review' %}
+                                    <button class="btn btn-xs btn-success btn-resolve" data-id="{{ appeal.id }}" data-status="accepted">Accept</button>
+                                    <button class="btn btn-xs btn-danger btn-resolve" data-id="{{ appeal.id }}" data-status="rejected">Reject</button>
+                                    {% else %}
+                                    <span class="text-muted">Resolved</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr id="no-appeals-row">
+                                <td colspan="7" class="text-center text-muted">No appeals currently pending.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Appeal Modal Dialog -->
+    <div id="appeal-modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3>Contest Attribution Decision</h3>
+                <button type="button" class="btn-close" id="modal-close">&times;</button>
+            </div>
+            <form id="appeal-form">
+                <input type="hidden" id="appeal-submission-id">
+                <div class="modal-body">
+                    <p class="modal-intro">
+                        Provenance Guard respects creator integrity. If you believe this work was misclassified,
+                        state your creation process below. Your work will immediately update to <strong>"under review"</strong>.
+                    </p>
+                    <div class="form-group">
+                        <label for="appeal-creator">Creator Email / ID</label>
+                        <input type="text" id="appeal-creator" class="form-control" required placeholder="author@creative.org">
+                    </div>
+                    <div class="form-group">
+                        <label for="appeal-assistance">Did you use AI tools in your workflow?</label>
+                        <select id="appeal-assistance" class="form-control">
+                            <option value="pure_human_no_ai">No AI was used (100% Human Creation)</option>
+                            <option value="ai_assisted_grammar">Human drafted, AI used solely for grammar / copyedit</option>
+                            <option value="ai_assisted_ideation">AI used for brainstorming, human wrote all text</option>
+                            <option value="other">Other / Nuanced collaboration</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="appeal-reasoning">Your Explanation & Process (Min 20 characters)</label>
+                        <textarea id="appeal-reasoning" class="form-control text-area" rows="4" required placeholder="Describe your drafting process, revisions, inspiration, or notes..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="appeal-evidence">Supporting Evidence Link (Optional)</label>
+                        <input type="text" id="appeal-evidence" class="form-control" placeholder="https://github.com/... or Google Doc draft history link">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" id="modal-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-warning" id="modal-submit-appeal">Submit Appeal (POST /appeal)</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Certificate Modal -->
+    <div id="cert-modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog cert-dialog">
+            <div class="modal-header">
+                <h3>Provenance Certificate Issued 🛡️</h3>
+                <button type="button" class="btn-close" id="cert-modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="cert-body">
+                <!-- Injected via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container footer-content">
+            <p><strong>Provenance Guard</strong> &copy; 2026. Built with Flask, Groq LLM, Stylometric Heuristics, and SQLite.</p>
+            <p class="text-sm text-muted">Protecting attribution, sustaining trust, and honoring human creative labor.</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
